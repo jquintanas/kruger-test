@@ -1,24 +1,27 @@
 "use client";
 
+import { ConfirmDialog } from "@/core/components/ConfirmModal";
 import AddProject from "@/core/components/forms/addProject";
-import { ConfirmDialog } from "@/core/components/forms/ConfirmModal";
+
 import EditProject from "@/core/components/forms/editProjects";
 import ModalWrapper from "@/core/components/Modal";
 import { useLoading } from "@/core/hooks/useLoading";
 import { useNotification } from "@/core/hooks/useNotification";
 import { Project } from "@/core/interfaces/projects.interface";
 import { parseErrorAxios } from "@/core/services/axios";
-import { getAllProject } from "@/core/services/projects.services";
+import { deleteProject, getAllProject } from "@/core/services/projects.services";
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FaEdit, FaEye, FaPlus, FaTrash } from "react-icons/fa";
 
 export default function Dashboard() {
+  const router = useRouter();
   const [confirmDelete, setStateConfirmDelete] = useState(false);
   const [open, setOpen] = useState(false);
   const [openEditModal, setStateOpenEditModal] = useState(false);
@@ -67,13 +70,34 @@ export default function Dashboard() {
     setStateOpenEditModal(true);
   };
 
-  const handleDelete = (project: Project) => {
-    console.log("Eliminar proyecto:", project);
-  };
+  const handleDelete = useCallback(async (project: Project) => {
+    currentProject.current = project;
+    setStateConfirmDelete(true);
+  }, []);
 
-  const handleView = (project: Project) => {
+  const handleDeleteCallback = useCallback(async () => {
+    showLoading();
+    await deleteProject(currentProject.current?.id.toString() ?? "1").then(
+      () => {
+        hideLoading();
+        showNotification("ok", "Información", "Proyecto eliminado con éxito");
+        setStateConfirmDelete(false);
+        gelAllProjectsCallBack();
+
+      }
+    ).catch(
+      err => {
+        console.error(err);
+        showNotification("error", "Error al eliminar proyecto", parseErrorAxios(err));
+        hideLoading();
+      }
+    );
+  }, [gelAllProjectsCallBack, hideLoading, showLoading, showNotification])
+
+  const handleView = useCallback((project: Project) => {
     console.log("Ver proyecto:", project);
-  };
+    router.push(`/projects/${project.id}`);
+  }, [router]);
 
 
   useEffect(() => {
@@ -146,7 +170,7 @@ export default function Dashboard() {
         ),
       },
     ]
-  }, [])
+  }, [handleDelete, handleView])
 
   const table = useReactTable({
     data: paginatedProjects,
@@ -263,7 +287,7 @@ export default function Dashboard() {
         message="Seguro desea eliminar el proyecto"
         showModal={confirmDelete}
         onCancel={() => setStateConfirmDelete(false)}
-        onConfirm={() => { }}
+        onConfirm={handleDeleteCallback}
 
       />
     </>

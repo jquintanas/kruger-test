@@ -12,3 +12,7 @@ export const addProject = (data: ProjectCRUD) => {
 export const editProject = (data: ProjectCRUD, id: string) => {
   return axiosGeneral.put(`${process.env.NEXT_PUBLIC_PROJECTS ?? ""}/${id}`, data)
 }
+
+export const deleteProject = (id: string) => {
+  return axiosGeneral.delete(`${process.env.NEXT_PUBLIC_PROJECTS ?? ""}/${id}`);
+}
