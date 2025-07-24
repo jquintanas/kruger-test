@@ -95,7 +95,6 @@ export default function Dashboard() {
   }, [gelAllProjectsCallBack, hideLoading, showLoading, showNotification])
 
   const handleView = useCallback((project: Project) => {
-    console.log("Ver proyecto:", project);
     router.push(`/projects/${project.id}`);
   }, [router]);
 

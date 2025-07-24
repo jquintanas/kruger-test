@@ -124,13 +124,26 @@ export default function Projects() {
     setStateConfirmDelete(true);
   };
 
+  const [filterStatus, setFilterStatus] = useState<string>("");
+  const [filterDate, setFilterDate] = useState<string>("");
+
+  const filteredTasks = useMemo(() => {
+    return tareas.filter((task) => {
+      const statusMatch = filterStatus ? task.estado === filterStatus : true;
+      return statusMatch;
+    });
+  }, [tareas, filterStatus]);
+
+  const filterTasksEstado = useCallback((estado: string) => {
+    setFilterStatus(estado);
+  }, [])
 
   const paginatedTasks = useMemo(() => {
     const start = pageIndex * pageSize;
-    return tareas.slice(start, start + pageSize);
-  }, [tareas, pageIndex, pageSize]);
+    return filteredTasks.slice(start, start + pageSize);
+  }, [filteredTasks, pageIndex, pageSize]);
 
-  const pageCount = Math.ceil(tareas.length / pageSize);
+  const pageCount = Math.ceil(filteredTasks.length / pageSize);
 
   // Columnas para TanStack Table
   const columns = useMemo<ColumnDef<TaskDto>[]>(() => {
@@ -177,15 +190,58 @@ export default function Projects() {
   return (
     <>
       <div className="p-4 sm:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors">
-        <div className="flex justify-end mb-6">
-          <button
-            onClick={handleAddTask}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded shadow transition-colors"
-          >
-            <FaPlus />
-            Agregar tarea
-          </button>
+        <div className="flex gap-4 mb-0 items-center">
+          <div className="flex justify-between items-end mb-2 w-full gap-4 flex-wrap">
+            <div className="flex gap-4 flex-wrap">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  Estado
+                </label>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => filterTasksEstado(e.target.value)}
+                  className="px-2 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200"
+                >
+                  <option value="">Todos</option>
+                  {Object.values(TaskStatus).map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  Fecha de creación
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={filterDate}
+                    onChange={(e) => {
+                      setFilterDate(e.target.value)
+                    }}
+                    className="px-2 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200"
+                  />
+
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleAddTask}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded shadow transition-colors"
+            >
+              <FaPlus />
+              Agregar tarea
+            </button>
+          </div>
+
+
+
         </div>
+        {/* Tabla */}
         <div className="overflow-x-auto rounded shadow">
           <table className="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded">
             <thead>
