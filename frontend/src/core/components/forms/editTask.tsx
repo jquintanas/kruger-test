@@ -2,8 +2,10 @@
 import { useLoading } from "@/core/hooks/useLoading";
 import { useNotification } from "@/core/hooks/useNotification";
 import { useUserData } from "@/core/hooks/useUserData";
+import { TaskDto } from "@/core/interfaces/Task.inteface";
 import { parseErrorAxios } from "@/core/services/axios";
-import { addNewTaskService } from "@/core/services/task.services";
+import { updateTaskService } from "@/core/services/task.services";
+import { useCallback } from "react";
 import { useForm } from "react-hook-form";
 
 type TaskForm = {
@@ -12,39 +14,44 @@ type TaskForm = {
   status: "PENDING" | "IN_PROGRESS" | "DONE";
 };
 
-interface AddTaskProps {
+interface EditTaskProps {
   closeModal: () => void;
-  projectId: number
+  task: TaskDto | null;
 }
 
-export default function AddTask({ closeModal, projectId }: AddTaskProps) {
+export default function EditTask({ closeModal, task }: EditTaskProps) {
   const {
     register,
     handleSubmit,
     formState: { errors }
   } = useForm<TaskForm>({
     defaultValues: {
-      status: "PENDING",
+      title: task?.titulo,
+      description: task?.descripcion,
+      status: task?.estado,
     },
   });
 
-  const { user, isAuthenticated } = useUserData();
+  const { isAuthenticated } = useUserData();
   const { showNotification } = useNotification();
   const { showLoading, hideLoading } = useLoading();
 
-  const handleFormSubmit = async (data: TaskForm) => {
+  const handleFormSubmit = useCallback(async (data: TaskForm) => {
     if (!isAuthenticated) {
-      showNotification("error", "Error al crear la tarea", "No hay un usuario en sesión.");
+      showNotification("error", "Error al editar la tarea", "No hay un usuario en sesión.");
       return;
     }
+    if (!task) {
+      return;
+    }
+
     showLoading();
-    await addNewTaskService(
+    await updateTaskService(
+      task.id,
       {
         title: data.title,
         status: data.status,
-        description: data.description,
-        assignedTo: { id: user?.id || 1 },
-        project: { id: projectId },
+        description: data.description
       }
     ).then(
       () => {
@@ -58,7 +65,7 @@ export default function AddTask({ closeModal, projectId }: AddTaskProps) {
         showNotification("error", "Error", parseErrorAxios(err));
       }
     )
-  };
+  }, [closeModal, hideLoading, isAuthenticated, showLoading, showNotification, task]);
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 w-full">
@@ -116,7 +123,7 @@ export default function AddTask({ closeModal, projectId }: AddTaskProps) {
           type="submit"
           className="px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700"
         >
-          Crear tarea
+          Guardar cambios
         </button>
       </div>
     </form>

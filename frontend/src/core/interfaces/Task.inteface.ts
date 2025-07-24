@@ -1,3 +1,5 @@
+import { TaskStatus } from "../enums/taskStatus.enum"
+
 export interface Task {
   id: number
   title: string
@@ -16,15 +18,15 @@ export interface TaskDto {
   creacion: Date | string,
   Usuario: string,
   idProyecto: number,
-  estado: string
+  estado: TaskStatus
 }
 
-export interface TaskInsert {
+export interface TaskCRUD {
   title: string
   description: string
   status: string
-  assignedTo: AssignedTo
-  project: Project
+  assignedTo?: AssignedTo
+  project?: Project
 }
 
 export interface AssignedTo {

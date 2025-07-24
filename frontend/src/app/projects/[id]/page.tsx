@@ -1,11 +1,14 @@
 'use client'
+import { ConfirmDialog } from "@/core/components/ConfirmModal";
 import AddTask from "@/core/components/forms/addTask";
+import EditTask from "@/core/components/forms/editTask";
 import ModalWrapper from "@/core/components/Modal";
+import { TaskStatus } from "@/core/enums/taskStatus.enum";
 import { useLoading } from "@/core/hooks/useLoading";
 import { useNotification } from "@/core/hooks/useNotification";
 import { Task, TaskDto } from "@/core/interfaces/Task.inteface";
 import { parseErrorAxios } from "@/core/services/axios";
-import { getTaskByProject } from "@/core/services/task.services";
+import { deleteTaskService, getTaskByProject } from "@/core/services/task.services";
 import {
   ColumnDef,
   flexRender,
@@ -23,7 +26,10 @@ export default function Projects() {
   const [tareas, setStateTareas] = useState<TaskDto[]>([]);
   const [taskColumns, setStateTaskColumns] = useState<(keyof TaskDto)[]>([]);
   const [modalNew, setStateModalNew] = useState(false);
+  const [modalEdit, setStateModalEdit] = useState(false);
   const projectIdRef = useRef<number>(0);
+  const selectedTask = useRef<TaskDto | null>(null);
+  const [confirmDelete, setStateConfirmDelete] = useState(false);
 
   // Paginación
   const [pageIndex, setPageIndex] = useState(0);
@@ -34,7 +40,6 @@ export default function Projects() {
   if (!params.id || isNaN(Number(params.id))) {
     notFound();
   }
-
 
 
   const getTasksByProject = useCallback(async (idProyecto: number) => {
@@ -54,7 +59,7 @@ export default function Projects() {
             Usuario: task.assignedTo,
             descripcion: task.description,
             creacion: (new Date(task.createdAt)).toLocaleDateString(),
-            estado: task.status,
+            estado: task.status as TaskStatus,
           }
           return dt;
         })
@@ -75,6 +80,30 @@ export default function Projects() {
     setStateModalNew(false);
   }, [getTasksByProject]);
 
+  const editTask = useCallback(() => {
+    getTasksByProject(projectIdRef.current);
+    setStateModalEdit(false);
+  }, [getTasksByProject]);
+
+  const handleDeleteCallback = useCallback(async () => {
+    showLoading();
+    await deleteTaskService(selectedTask.current?.id ?? 1).then(
+      () => {
+        setStateConfirmDelete(false);
+        getTasksByProject(projectIdRef.current);
+        hideLoading();
+      }
+    ).catch(
+      err => {
+        console.error("Error al eliminar la tarea:", err);
+        const parsedError = parseErrorAxios(err);
+        showNotification("error", "Error", parsedError);
+        hideLoading();
+      }
+    )
+
+  }, [getTasksByProject, hideLoading, showLoading, showNotification])
+
   useEffect(() => {
     const projectId = params.id as string;
     projectIdRef.current = Number(projectId);
@@ -82,19 +111,20 @@ export default function Projects() {
   }, [getTasksByProject, params.id]);
 
   const handleAddTask = () => {
-    console.log("Agregar nueva tarea");
     setStateModalNew(true);
   };
 
   const handleEdit = (task: TaskDto) => {
-    console.log("Editar tarea:", task);
+    selectedTask.current = task;
+    setStateModalEdit(true);
   };
 
   const handleDelete = (task: TaskDto) => {
-    console.log("Eliminar tarea:", task);
+    selectedTask.current = task;
+    setStateConfirmDelete(true);
   };
 
-  // Paginación de tareas
+
   const paginatedTasks = useMemo(() => {
     const start = pageIndex * pageSize;
     return tareas.slice(start, start + pageSize);
@@ -229,6 +259,22 @@ export default function Projects() {
       >
         <AddTask closeModal={addNewTask} projectId={projectIdRef.current} />
       </ModalWrapper>
+
+      <ModalWrapper
+        isOpen={modalEdit}
+        onClose={() => setStateModalEdit(false)}
+        title="Edición de tareas"
+      >
+        <EditTask closeModal={editTask} task={selectedTask.current} />
+      </ModalWrapper>
+
+      <ConfirmDialog
+        message="Seguro desea eliminar la tarea"
+        showModal={confirmDelete}
+        onCancel={() => setStateConfirmDelete(false)}
+        onConfirm={handleDeleteCallback}
+
+      />
 
     </>
   );
