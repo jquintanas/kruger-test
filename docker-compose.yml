@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres-db
+    environment:
+      POSTGRES_DB: kdevdb
+      POSTGRES_USER: kdevuser
+      POSTGRES_PASSWORD: kdevpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+    container_name: kruger-prueba
+    ports:
+      - "9080:9080"
+    environment:
+      - SERVER_PORT=9080
+      - URL_DATASOURCE=jdbc:postgresql://postgres:5432/kdevdb
+      - USERNAME_DATASOURCE=kdevuser
+      - PASS_DATASOURCE=kdevpass
+      - APP_JWT_SECRET=MiSuperClaveSecreta1234567890123456
+      - APP_JWT_EXPIRATION=86400000
+      - URI_DEV=http://localhost:9080/kruger
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend/src/main/resources/application.properties:/app/application.properties
+      - ./backend/log4j2.xml:/app/log4j2.xml
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:9080/kruger
+    container_name: kruger-frontend
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:9080/kruger
+      - PORT=3100
+      - HOSTNAME=0.0.0.0
+    ports:
+      - "3100:3100"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    restart: unless-stopped
+    
+networks:
+  app-network:
+    driver: bridge
