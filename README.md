@@ -97,7 +97,7 @@ Esto ejecutará ambos servicios en segundo plano. Verifica los puertos expuestos
 
 ## 📘 Requerimientos Técnicos
 
-Consulta los requerimientos técnicos completos en el archivo [📄 EVALUATION2.md](./REQUERIMIENTOS_TECNICOS.md)
+Consulta los requerimientos técnicos completos en el archivo [📄 EVALUATION2.md](./EVALUATION2.md)
 
 ---
 
